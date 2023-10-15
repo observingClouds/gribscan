@@ -338,7 +338,7 @@ def scan_gribfile(filelike, **kwargs):
         }
 
 
-def write_index(gribfile, idxfile=None):
+def write_index(gribfile, idxfile=None, outdir=None, force=False):
     p = pathlib.Path(gribfile)
     if idxfile is None:
         idxfile = p.parent / (p.stem + ".index")
@@ -347,7 +347,7 @@ def write_index(gribfile, idxfile=None):
     # collapse the "/./" notation used to denote subtrees.
     gen = scan_gribfile(fsspec.open(p, "rb").open(), filename=gribfile)
 
-    with open(idxfile, "w") as output_file:
+    with open(idxfile, "w" if force else "x") as output_file:
         for record in gen:
             json.dump(record, output_file)
             output_file.write("\n")
