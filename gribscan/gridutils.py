@@ -69,6 +69,118 @@ class LatLonRotated(GribGrid):
         y = np.linspace(0, 1, Nj)
 
         return {"lon": lons, "lat": lats, "x": x, "y": y}
+    
+
+class Lambert(GribGrid):
+    gridType = "lambert"
+    params = [
+        "Ni",
+        "Nj",
+        "LoVInDegrees",
+        "LaDInDegrees",
+        "Latin1InDegrees",
+        "Latin2InDegrees",
+        "latitudeOfFirstGridPointInDegrees",
+        "longitudeOfFirstGridPointInDegrees",
+        "iScansPositively",
+        "jScansPositively",
+        "DxInMetres",
+        "DyInMetres",
+        "shapeOfTheEarth",
+    ]
+
+    @classmethod
+    def compute_coords(cls, **kwargs):
+        Ni = kwargs["Ni"]
+        Nj = kwargs["Nj"]
+        lon_0 = kwargs["LoVInDegrees"] # Latitude of first standard parallel
+        lat_0 = kwargs["LaDInDegrees"] # Latitude of second standard parallel
+        lat_1 = kwargs["Latin1InDegrees"] # Origin latitude
+        lat_2 = kwargs["Latin2InDegrees"] # Origin longitude
+        lat1 = kwargs["latitudeOfFirstGridPointInDegrees"] # Origin latitude
+        lon1 = kwargs["longitudeOfFirstGridPointInDegrees"] # Origin longitude
+        iScansPositively = kwargs["iScansPositively"]
+        jScansPositively = kwargs["jScansPositively"]
+        dx = kwargs["DxInMetres"]
+        dy = kwargs["DyInMetres"]
+        shapeOfTheEarth = kwargs["shapeOfTheEarth"]
+        
+        # assume false_easting and false_northing are 0
+        false_easting = 0
+        false_northing = 0
+
+
+        if shapeOfTheEarth == 6:
+            a = 6371229.0 # a = Semi-major axis of reference ellipsoid
+            b = 6371229.0 # b = Semi-minor axis of reference ellipsoid
+            f = (a-b)/a # f = Flattening of reference ellipsoid
+        else:
+            raise NotImplementedError("Only sphere implemented")
+
+        if lat_1 == lat_2:
+            # Lambert Conic Conformal (1SP)
+            pass
+        else:
+            raise NotImplementedError("Lambert Conic Conformal (2SP) not implemented")
+
+        phi = np.deg2rad(lat1)
+        lambd = np.deg2rad(lon1)
+        phi_0 = np.deg2rad(lat_0)
+        theta_0 = np.deg2rad(lon_0)
+
+        k0 = 1.000000 # scale factor at natural origin
+        e = np.sqrt(2*f-f**2)
+
+        m0 = np.cos(phi_0)/(1-e**2 * np.sin(phi_0)**2)**(1/2)
+        t0 = np.tan(np.pi/4 - phi_0/2)/((1-e*np.sin(phi_0))/(1+e*np.sin(phi_0)))**(e/2)
+        t = np.tan(np.pi/4 - phi/2)/((1-e*np.sin(phi))/(1+e*np.sin(phi)))**(e/2)
+        n = np.sin(phi_0)
+        F = m0/(n*t0**n)
+        r = a*F*t**n * k0
+        r0 = a*F*t0**n * k0
+        theta = n*(lambd-theta_0)
+
+        llcrnrx = false_easting + r*np.sin(theta)
+        llcrnry = false_northing + r0 - r*np.cos(theta)
+
+        if jScansPositively == 0 and dy > 0: dy = -dy
+        if iScansPositively == 0 and dx > 0: dx = -dx
+
+        easting = llcrnrx + dx*np.arange(Ni)
+        northing = llcrnry + dy*np.arange(Nj)
+
+        lats = np.zeros([Nj, Ni])
+        lons = np.zeros([Nj, Ni])
+
+        i = -1
+        for east in easting:
+            i += 1
+            j = 0
+            for north in northing:
+                theta_dot = np.arctan((east-false_easting)/(r0-(north-false_northing)))
+                r_dot = ((east-false_easting)**2+(r0-(north-false_northing))**2)**0.5
+                t_dot = (r_dot/(a*k0*F))**(1/n)
+
+                delta_phi=10
+                epsilon = 10e-10
+
+
+                phi_g = np.pi/2 - 2*np.arctan(t_dot)
+
+                while delta_phi > epsilon:
+                    phi = np.pi/2 - 2*np.arctan(t_dot * ( (1-e*np.sin(phi_g)) / (1+e*np.sin(phi_g)) )**(e/2) )
+                    delta_phi = abs(phi-phi_g)
+                    phi_g = phi
+
+                lambd = theta_dot/n + theta_0
+
+                lats[j,i] = np.rad2deg(phi)
+                lons[j,i] = np.rad2deg(lambd)
+                j += 1
+                
+        # TODO: would maybe be nice to communicate back that the "x" and "y"
+        # coordinates are actually "easting" and "northing" values
+        return {"lon": lons, "lat": lats, "x": easting, "y": northing}
 
 
 grids = {g.gridType: g for g in GribGrid._subclasses}

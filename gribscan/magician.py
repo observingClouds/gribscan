@@ -163,7 +163,7 @@ class HarmonieMagician(MagicianBase):
         if levtype == "generalVerticalLayer":
             dims = tuple("fulllevel" if dim == "level" else dim for dim in dims)
         dims = tuple("time" if dim == "posix_time" else dim for dim in dims)
-
+        
         return {
             "dims": dims,
             "data_dims": ["y", "x"],
@@ -205,11 +205,12 @@ class HarmonieMagician(MagicianBase):
         return varinfo2coords(v0)
 
     def m2dataset(self, meta):
-        return (
-            "atm3d"
-            if meta["attrs"]["typeOfLevel"].startswith("hybrid")
-            else "atm2d"
-        )
+        return meta["attrs"]["typeOfLevel"]
+        # return (
+        #     "atm3d"
+        #     if meta["attrs"]["typeOfLevel"].startswith("hybrid")
+        #     else "atm2d"
+        # )
 
 
 MAGICIANS = {
