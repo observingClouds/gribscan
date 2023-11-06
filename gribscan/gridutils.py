@@ -70,6 +70,8 @@ class LatLonRotated(GribGrid):
 
         return {"lon": lons, "lat": lats, "x": x, "y": y}
     
+import functools
+    
 
 class Lambert(GribGrid):
     gridType = "lambert"
@@ -90,6 +92,7 @@ class Lambert(GribGrid):
     ]
 
     @classmethod
+    @functools.lru_cache(maxsize=128)
     def compute_coords(cls, **kwargs):
         Ni = kwargs["Ni"]
         Nj = kwargs["Nj"]
@@ -146,41 +149,64 @@ class Lambert(GribGrid):
         if jScansPositively == 0 and dy > 0: dy = -dy
         if iScansPositively == 0 and dx > 0: dx = -dx
 
-        easting = llcrnrx + dx*np.arange(Ni)
-        northing = llcrnry + dy*np.arange(Nj)
+        easting_ = llcrnrx + dx*np.arange(Ni)
+        northing_ = llcrnry + dy*np.arange(Nj)
+        easting, northing = np.meshgrid(easting_, northing_)
+        
+        @np.vectorize
+        def _calc_lambda_phi(east, north):
+            theta_dot = np.arctan((east-false_easting)/(r0-(north-false_northing)))
+            r_dot = ((east-false_easting)**2+(r0-(north-false_northing))**2)**0.5
+            t_dot = (r_dot/(a*k0*F))**(1/n)
 
-        lats = np.zeros([Nj, Ni])
-        lons = np.zeros([Nj, Ni])
-
-        i = -1
-        for east in easting:
-            i += 1
-            j = 0
-            for north in northing:
-                theta_dot = np.arctan((east-false_easting)/(r0-(north-false_northing)))
-                r_dot = ((east-false_easting)**2+(r0-(north-false_northing))**2)**0.5
-                t_dot = (r_dot/(a*k0*F))**(1/n)
-
-                delta_phi=10
-                epsilon = 10e-10
+            delta_phi=10
+            epsilon = 10e-10
 
 
-                phi_g = np.pi/2 - 2*np.arctan(t_dot)
+            phi_g = np.pi/2 - 2*np.arctan(t_dot)
 
-                while delta_phi > epsilon:
-                    phi = np.pi/2 - 2*np.arctan(t_dot * ( (1-e*np.sin(phi_g)) / (1+e*np.sin(phi_g)) )**(e/2) )
-                    delta_phi = abs(phi-phi_g)
-                    phi_g = phi
+            while delta_phi > epsilon:
+                phi = np.pi/2 - 2*np.arctan(t_dot * ( (1-e*np.sin(phi_g)) / (1+e*np.sin(phi_g)) )**(e/2) )
+                delta_phi = abs(phi-phi_g)
+                phi_g = phi
 
-                lambd = theta_dot/n + theta_0
-
-                lats[j,i] = np.rad2deg(phi)
-                lons[j,i] = np.rad2deg(lambd)
-                j += 1
+            lambd = theta_dot/n + theta_0
+            return lambd, phi
+        
+        # lambd, phi = _calc_lambda_phi(easting, northing)
+        lambd, phi = _calc_lambda_phi_numba(easting, northing, false_easting, false_northing, r0, theta_0, a, k0, F, n, e)
+        
+        lats = np.rad2deg(phi) 
+        lons = np.rad2deg(lambd)
                 
         # TODO: would maybe be nice to communicate back that the "x" and "y"
         # coordinates are actually "easting" and "northing" values
-        return {"lon": lons, "lat": lats, "x": easting, "y": northing}
+        x = easting_
+        y = northing_
+        return {"lon": lons, "lat": lats, "x": x, "y": y}
+
+import numba
+
+@np.vectorize
+@numba.jit
+def _calc_lambda_phi_numba(east, north, false_easting, false_northing, r0, theta_0, a, k0, F, n, e):
+    theta_dot = np.arctan((east-false_easting)/(r0-(north-false_northing)))
+    r_dot = ((east-false_easting)**2+(r0-(north-false_northing))**2)**0.5
+    t_dot = (r_dot/(a*k0*F))**(1/n)
+
+    delta_phi=10
+    epsilon = 10e-10
+
+
+    phi_g = np.pi/2 - 2*np.arctan(t_dot)
+
+    while delta_phi > epsilon:
+        phi = np.pi/2 - 2*np.arctan(t_dot * ( (1-e*np.sin(phi_g)) / (1+e*np.sin(phi_g)) )**(e/2) )
+        delta_phi = abs(phi-phi_g)
+        phi_g = phi
+
+    lambd = theta_dot/n + theta_0
+    return lambd, phi
 
 
 grids = {g.gridType: g for g in GribGrid._subclasses}
