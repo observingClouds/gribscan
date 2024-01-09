@@ -89,6 +89,8 @@ class Lambert(GribGrid):
         "DxInMetres",
         "DyInMetres",
         "shapeOfTheEarth",
+        "radiusInMetres",
+        "edition"
     ]
 
     @classmethod
@@ -107,18 +109,28 @@ class Lambert(GribGrid):
         dx = kwargs["DxInMetres"]
         dy = kwargs["DyInMetres"]
         shapeOfTheEarth = kwargs["shapeOfTheEarth"]
+        edition = kwargs["edition"]
         
         # assume false_easting and false_northing are 0
         false_easting = 0
         false_northing = 0
 
-
-        if shapeOfTheEarth == 6:
-            a = 6371229.0 # a = Semi-major axis of reference ellipsoid
-            b = 6371229.0 # b = Semi-minor axis of reference ellipsoid
-            f = (a-b)/a # f = Flattening of reference ellipsoid
+        # a = Semi-major axis of reference ellipsoid
+        # b = Semi-minor axis of reference ellipsoid
+        if edition == 1:
+            # for GRIB1 we ignore shapeOfTheEarth and instead use radiusInMetres
+            # we do this because eccodes prior to 2.33.0 returned the incorrect value for shapeOfTheEarth
+            # see https://jira.ecmwf.int/browse/ECC-811 and https://github.com/ecmwf/eccodes/commit/4808994174d735008e70c4b032d447369362ce92
+            a = b = kwargs["radiusInMetres"]
+        elif edition == 2:
+            if shapeOfTheEarth == 6:
+                a = b = 6371229.0 
+            else:
+                raise NotImplementedError("Only sphere implemented")
         else:
-            raise NotImplementedError("Only sphere implemented")
+            raise NotImplementedError("Only GRIB1 and GRIB2 implemented")
+        
+        f = (a-b)/a # f = Flattening of reference ellipsoid
 
         if lat_1 == lat_2:
             # Lambert Conic Conformal (1SP)
