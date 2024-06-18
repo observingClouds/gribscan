@@ -214,8 +214,11 @@ time_range_units = {
     # 255 Missing
 }
 
-
 def get_time_offset(gribmessage, lean_towards="end"):
+    """Calculate time offset based on GRIB definition.
+
+    See: https://codes.ecmwf.int/grib/format/grib1/ctable/5/
+    """
     offset = 0  # np.timedelta64(0, "s")
     edition = int(gribmessage["editionNumber"])
     if edition == 1:
@@ -227,11 +230,31 @@ def get_time_offset(gribmessage, lean_towards="end"):
             offset += int(gribmessage["P1"]) * unit
         elif timeRangeIndicator == 1:
             pass
+        elif timeRangeIndicator in [2, 3]:
+            unit = time_range_units[
+                int(gribmessage.get("indicatorOfUnitOfTimeRange", 255))
+            ]
+            if lean_towards == "start":
+                offset += int(gribmessage["P1"]) * unit
+            elif lean_towards == "end":
+                offset += int(gribmessage["P2"]) * unit
+        elif timeRangeIndicator == 4:
+            unit = time_range_units[
+                int(gribmessage.get("indicatorOfUnitOfTimeRange", 255))
+            ]
+            offset += int(gribmessage["P2"]) * unit
         elif timeRangeIndicator == 10:
             unit = time_range_units[
                 int(gribmessage.get("indicatorOfUnitOfTimeRange", 255))
             ]
             offset += (int(gribmessage["P1"]) * 256 + int(gribmessage["P2"])) * unit
+        elif timeRangeIndicator == 123:
+            unit = time_range_units[
+                int(gribmessage.get("indicatorOfUnitOfTimeRange", 255))
+            ]
+            if lean_towards == "end":
+                N = int(gribmessage["numberIncludedInAverage"])
+                offset += N * int(gribmessage["P2"]) * unit
         else:
             raise NotImplementedError(
                 f"don't know how to handle timeRangeIndicator {timeRangeIndicator}"
