@@ -411,7 +411,6 @@ def inspect_grib_indices(messages, magician):
                     *(
                         (dim, i, len(coords))
                         for i, (dim, coords) in enumerate(zip(magician.dimkeys, coords))
-                        if len(coords) != 1
                     )
                 ),
             )
