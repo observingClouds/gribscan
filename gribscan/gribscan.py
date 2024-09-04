@@ -7,6 +7,7 @@ from collections import defaultdict
 
 import cfgrib
 import eccodes
+import fsspec
 import numpy as np
 
 from .magician import Magician
@@ -358,7 +359,7 @@ def write_index(gribfile, idxfile=None, outdir=None, force=False):
 
     # We need to use the gribfile (str) variable because Path() objects
     # collapse the "/./" notation used to denote subtrees.
-    gen = scan_gribfile(open(p, "rb"), filename=gribfile)
+    gen = scan_gribfile(fsspec.open(p, "rb").open(), filename=gribfile)
 
     tempfile = idxfile.with_suffix(".index.partial")
     with open(tempfile, "w") as output_file:
