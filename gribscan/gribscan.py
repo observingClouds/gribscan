@@ -7,6 +7,7 @@ from collections import defaultdict
 
 import cfgrib
 import eccodes
+import fsspec
 import numpy as np
 
 from .magician import Magician
@@ -342,7 +343,9 @@ def write_index(gribfile, idxfile=None):
     if idxfile is None:
         idxfile = p.parent / (p.stem + ".index")
 
-    gen = scan_gribfile(open(p, "rb"), filename=p.name)
+    # We need to use the gribfile (str) variable because Path() objects
+    # collapse the "/./" notation used to denote subtrees.
+    gen = scan_gribfile(fsspec.open(p, "rb").open(), filename=gribfile)
 
     with open(idxfile, "w") as output_file:
         for record in gen:
