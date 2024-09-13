@@ -17,6 +17,7 @@ setup(
         "numcodecs>=0.10.0",
         "numpy",
         "numba",
+        "universal_pathlib",
     ],
     extras_require={
         "docs": [

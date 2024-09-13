@@ -9,6 +9,7 @@ import cfgrib
 import eccodes
 import fsspec
 import numpy as np
+from upath import UPath
 
 from .magician import Magician
 from . import gridutils as gu
@@ -339,7 +340,7 @@ def scan_gribfile(filelike, **kwargs):
 
 
 def write_index(gribfile, idxfile=None, outdir=None, force=False):
-    p = pathlib.Path(gribfile)
+    p = UPath(gribfile)
     if idxfile is None:
         idxfile = p.parent / (p.stem + ".index")
 
