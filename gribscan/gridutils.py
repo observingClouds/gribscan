@@ -197,6 +197,9 @@ class Lambert(GribGrid):
         y = northing_
         return {"lon": lons, "lat": lats, "x": x, "y": y}
 
+class LambertLam(Lambert):
+    gridType = "lambert_lam"
+
 import numba
 
 @np.vectorize
