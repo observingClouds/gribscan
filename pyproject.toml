@@ -20,7 +20,9 @@ dependencies = [
     "cfgrib>=0.9.9.0",  # previous versions create a cffi error on index
     "eccodes",
     "numcodecs>=0.10.0",
+    "universal_pathlib",
     "numpy",
+    "numba",
     "scipy",
 ]
 dynamic = ["version"]

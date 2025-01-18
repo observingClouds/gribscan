@@ -138,5 +138,7 @@ def build_dataset():
     )
 
     for dataset, ref in refs.items():
-        with open(f"{args.output}/{dataset}.json", "w") as indexfile:
+        fp = Path(f"{args.output}/{dataset}.json")
+        fp.parent.mkdir(exist_ok=True, parents=True)
+        with open(fp, "w") as indexfile:
             json.dump(ref, indexfile)
