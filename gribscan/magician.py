@@ -162,7 +162,7 @@ class EnsembleMagician(IFSMagician):
 
 class HarmonieMagician(MagicianBase):
     varkeys = "param", "levtype"
-    dimkeys = "posix_time", "level"
+    dimkeys = "posix_time", "level", "referenceTime"
 
     def globals_hook(self, global_attrs):
         history = global_attrs.get("history", "")
