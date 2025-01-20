@@ -199,7 +199,7 @@ class HarmonieMagician(MagicianBase):
     def coords_hook(self, name, coords):
         dims = [name]
         attrs = {}
-        compressor = numcodecs.Blosc("lz4", shuffle=0)
+        compressor = None
         if "time" in name:
             attrs = {
                 "units": "seconds since 1970-01-01T00:00:00",
