@@ -439,7 +439,7 @@ def inspect_grib_indices(messages, magician):
 
     varinfo = {}
     for varkey, coords in coords_by_key.items():
-        if all(len(c) == 1 for c in coords):
+        if all(len(c) == 0 for c in coords):
             dims = ()
             dim_id = ()
             shape = ()
