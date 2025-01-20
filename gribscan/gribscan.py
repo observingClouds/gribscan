@@ -454,6 +454,13 @@ def inspect_grib_indices(messages, magician):
                 ),
             )
 
+        if 'level' in dims:
+            dim_pos = dims.index('level')
+            if shape[dim_pos] == 1:
+                dims = dims[:dim_pos] + dims[dim_pos + 1:]
+                dim_id = dim_id[:dim_pos] + dim_id[dim_pos + 1:]
+                shape = shape[:dim_pos] + shape[dim_pos + 1:]
+
         info = {
             "dims": dims,
             "shape": shape,
