@@ -205,6 +205,11 @@ class HarmonieMagician(MagicianBase):
                 "units": "seconds since 1970-01-01T00:00:00",
                 "calendar": "proleptic_gregorian",
             }
+        elif name == "referenceTime":
+            attrs = {
+                "units": "seconds since 1970-01-01T00:00:00",
+                "calendar": "proleptic_gregorian",
+            }
         elif name == "lat":
             dims = ["y", "x"]
             attrs = {
