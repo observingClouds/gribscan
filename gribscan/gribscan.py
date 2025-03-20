@@ -4,6 +4,7 @@ import base64
 import pathlib
 import uuid
 from collections import defaultdict
+import io
 
 import cfgrib
 import eccodes
@@ -300,7 +301,8 @@ def arrays_to_list(o):
         return o
 
 
-def scan_gribfile(filelike, **kwargs):
+def scan_gribfile(f, **kwargs):
+    filelike = io.BufferedReader(f)
     for offset, size, grib_edition, data in _split_file(filelike):
         mid = eccodes.codes_new_from_message(data)
         m = cfgrib.cfmessage.CfMessage(mid)
@@ -375,7 +377,7 @@ def write_index(gribfile, idxfile=None, outdir=None, force=False):
 
     # We need to use the gribfile (str) variable because Path() objects
     # collapse the "/./" notation used to denote subtrees.
-    gen = scan_gribfile(p.open(), filename=gribfile)
+    gen = scan_gribfile(p.open("rb"), filename=gribfile)
 
     tempfile = idxfile.with_suffix(".index.partial")
     with open(tempfile, "w") as output_file:
