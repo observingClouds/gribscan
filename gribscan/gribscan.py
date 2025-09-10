@@ -358,7 +358,7 @@ def scan_gribfile(filelike, **kwargs):
 
 
 def write_index(gribfile, idxfile=None, outdir=None, force=False):
-    p = pathlib.Path(gribfile)
+    p = gribfile
     if outdir is None:
         outdir = p.parent
 
@@ -374,7 +374,7 @@ def write_index(gribfile, idxfile=None, outdir=None, force=False):
 
     # We need to use the gribfile (str) variable because Path() objects
     # collapse the "/./" notation used to denote subtrees.
-    gen = scan_gribfile(open(p, "rb"), filename=gribfile)
+    gen = scan_gribfile(p, filename=gribfile.name)
 
     tempfile = idxfile.with_suffix(".index.partial")
     with open(tempfile, "w") as output_file:
